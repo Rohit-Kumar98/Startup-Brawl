@@ -1,0 +1,354 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  body {
+    background-color: #050711;
+    background-image: 
+      radial-gradient(circle at 15% 20%, rgba(56, 189, 248, 0.15) 0%, transparent 40%),
+      radial-gradient(circle at 85% 25%, rgba(192, 38, 211, 0.18) 0%, transparent 45%),
+      radial-gradient(circle at 50% 85%, rgba(37, 99, 235, 0.12) 0%, transparent 55%),
+      linear-gradient(to bottom, #050711 0%, #080c1e 100%);
+    background-attachment: fixed;
+    font-family: 'Outfit', 'Lilita One', system-ui, sans-serif;
+    color: #FFFFFF;
+    overflow-x: hidden;
+  }
+}
+
+/* ======================================================== */
+/* AUTHENTIC BRAWL STARS ARCADE DESIGN SYSTEM               */
+/* ======================================================== */
+
+.brawl-font {
+  font-family: 'Lilita One', 'Outfit', cursive, sans-serif;
+  letter-spacing: 0.04em;
+}
+
+/* Comic Text with Heavy Outlines and Drop Shadow */
+.brawl-text {
+  font-family: 'Lilita One', 'Outfit', cursive, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-shadow: 
+    -2px -2px 0 #000,  
+     2px -2px 0 #000,
+    -2px  2px 0 #000,
+     2px  2px 0 #000,
+     0px  4px 0 #000,
+     0px  6px 0 rgba(0, 0, 0, 0.85);
+}
+
+.brawl-text-sm {
+  font-family: 'Lilita One', 'Outfit', cursive, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-shadow: 
+    -1.5px -1.5px 0 #000,  
+     1.5px -1.5px 0 #000,
+    -1.5px  1.5px 0 #000,
+     1.5px  1.5px 0 #000,
+     0px  3px 0 #000;
+}
+
+.brawl-title {
+  font-family: 'Lilita One', 'Outfit', cursive, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-shadow: 
+    -3px -3px 0 #000,  
+     3px -3px 0 #000,
+    -3px  3px 0 #000,
+     3px  3px 0 #000,
+     0px  6px 0 #000,
+     0px  9px 0 rgba(0, 0, 0, 0.85);
+}
+
+/* IEC SOA Screenshot Gradient Text */
+.iec-gradient-text {
+  background: linear-gradient(135deg, #38bdf8 0%, #60a5fa 30%, #c026d3 70%, #f43f5e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none !important;
+  filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.45));
+}
+
+/* -------------------------------------------------------- */
+/* 3D PUSH-DOWN BRAWL STARS BUTTONS                        */
+/* -------------------------------------------------------- */
+.brawl-btn {
+  font-family: 'Lilita One', 'Outfit', cursive, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  border-radius: 1.25rem;
+  border: 3.5px solid #000;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.07s ease-in-out, border-bottom-width 0.07s ease-in-out, box-shadow 0.07s ease-in-out;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.55);
+}
+
+/* Top Sheen Line */
+.brawl-btn::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 8px;
+  right: 8px;
+  height: 35%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border-radius: 0.75rem 0.75rem 0.25rem 0.25rem;
+  pointer-events: none;
+}
+
+.brawl-btn:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.55);
+}
+
+.brawl-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.7);
+}
+
+/* 1. Yellow Brawl "PLAY" Button (Iconic Brawl Stars Play Button) */
+.brawl-btn-yellow {
+  background: linear-gradient(180deg, #ffe53b 0%, #ffbe00 48%, #ff8800 100%);
+  border-bottom: 7px solid #8a3f00;
+  color: #000000;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+.brawl-btn-yellow:active:not(:disabled) {
+  border-bottom: 3px solid #8a3f00;
+}
+
+/* 2. Electric Blue Button (IEC SOA Primary) */
+.brawl-btn-blue {
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 48%, #0369a1 100%);
+  border-bottom: 7px solid #062b48;
+  color: #ffffff;
+  text-shadow: 0 2px 0 #000;
+}
+.brawl-btn-blue:active:not(:disabled) {
+  border-bottom: 3px solid #062b48;
+}
+
+/* 3. Vivid Magenta/Purple Button (IEC SOA Accent) */
+.brawl-btn-purple {
+  background: linear-gradient(180deg, #f472b6 0%, #c026d3 48%, #86198f 100%);
+  border-bottom: 7px solid #4a044e;
+  color: #ffffff;
+  text-shadow: 0 2px 0 #000;
+}
+.brawl-btn-purple:active:not(:disabled) {
+  border-bottom: 3px solid #4a044e;
+}
+
+/* 4. Emerald Green Button (Select / Upgrade / Confirm) */
+.brawl-btn-green {
+  background: linear-gradient(180deg, #4ade80 0%, #16a34a 48%, #15803d 100%);
+  border-bottom: 7px solid #052e16;
+  color: #ffffff;
+  text-shadow: 0 2px 0 #000;
+}
+.brawl-btn-green:active:not(:disabled) {
+  border-bottom: 3px solid #052e16;
+}
+
+/* 5. Danger Red Button (Exit / Battle Danger / QTE) */
+.brawl-btn-red {
+  background: linear-gradient(180deg, #f87171 0%, #dc2626 48%, #991b1b 100%);
+  border-bottom: 7px solid #450a0a;
+  color: #ffffff;
+  text-shadow: 0 2px 0 #000;
+}
+.brawl-btn-red:active:not(:disabled) {
+  border-bottom: 3px solid #450a0a;
+}
+
+/* -------------------------------------------------------- */
+/* BRAWL STARS CAPSULE PILLS (HUD RESOURCES)               */
+/* -------------------------------------------------------- */
+.brawl-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #0b1122;
+  border: 2.5px solid #000;
+  border-bottom: 4.5px solid #050811;
+  border-radius: 9999px;
+  padding: 0.25rem 0.65rem;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4);
+}
+
+.brawl-pill-yellow {
+  border-color: #ffd000;
+  border-bottom-color: #945d00;
+}
+
+.brawl-pill-green {
+  border-color: #22c55e;
+  border-bottom-color: #14532d;
+}
+
+.brawl-pill-blue {
+  border-color: #38bdf8;
+  border-bottom-color: #0369a1;
+}
+
+.brawl-pill-purple {
+  border-color: #c026d3;
+  border-bottom-color: #701a75;
+}
+
+/* -------------------------------------------------------- */
+/* BRAWL STARS 3D ARCADE CARDS & PEDESTAL                   */
+/* -------------------------------------------------------- */
+.brawl-card {
+  background: #0c1224;
+  border: 3.5px solid #1a2542;
+  border-bottom: 8px solid #060912;
+  border-radius: 1.75rem;
+  box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.7);
+  position: relative;
+}
+
+/* Circular Glowing Brawler Pedestal */
+.brawl-pedestal {
+  position: relative;
+  width: 220px;
+  height: 70px;
+  background: radial-gradient(ellipse at center, rgba(56, 189, 248, 0.6) 0%, rgba(192, 38, 211, 0.3) 50%, transparent 75%);
+  border-radius: 50%;
+  border: 3px solid rgba(56, 189, 248, 0.8);
+  box-shadow: 0 0 35px rgba(56, 189, 248, 0.5), inset 0 0 25px rgba(192, 38, 211, 0.4);
+}
+
+/* Angled Category Badge */
+.brawl-badge {
+  font-family: 'Lilita One', 'Outfit', cursive, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transform: skewX(-6deg);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.6rem;
+  border: 2px solid #000;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.6);
+}
+
+/* In-Game Overhead Brawler Health Bar */
+.brawler-hp-bar {
+  width: 75px;
+  height: 8px;
+  background: #111827;
+  border: 1.5px solid #000;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.brawler-ammo-bars {
+  display: flex;
+  gap: 2px;
+  width: 75px;
+  margin-top: 2px;
+}
+
+.brawler-ammo-segment {
+  flex: 1;
+  height: 4px;
+  background: #f59e0b;
+  border: 1px solid #000;
+  border-radius: 2px;
+}
+
+/* Animations */
+@keyframes screenShake {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  20% { transform: translate(-6px, 4px) rotate(-1deg); }
+  40% { transform: translate(6px, -4px) rotate(1deg); }
+  60% { transform: translate(-4px, 2px) rotate(-0.5deg); }
+  80% { transform: translate(4px, -2px) rotate(0.5deg); }
+}
+
+.animate-shake {
+  animation: screenShake 0.4s ease-in-out;
+}
+
+/* Virtual Mobile-Arcade Joystick */
+.brawl-joystick-ring {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: rgba(2, 132, 199, 0.25);
+  border: 3px solid rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 25px rgba(56, 189, 248, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brawl-joystick-knob {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+  border: 2.5px solid #000;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.5);
+}
+
+.brawl-super-btn {
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #facc15 0%, #eab308 100%);
+  border: 3px solid #000;
+  box-shadow: 0 6px 0 #78350f, 0 0 25px rgba(250, 204, 21, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  color: #000;
+  cursor: pointer;
+  transition: transform 0.08s ease;
+}
+.brawl-super-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #78350f;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #050711;
+}
+::-webkit-scrollbar-thumb {
+  background: #0284c7;
+  border-radius: 9999px;
+  border: 2px solid #000;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #38bdf8;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #0284c7 #050711;
+}
