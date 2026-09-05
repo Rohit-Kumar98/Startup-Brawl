@@ -120,3 +120,20 @@ export interface DecisionHistoryItem {
   outcomeText: string;
   scoreChange: number;
 }
+
+export interface BuildingLocation {
+  id: string;
+  name: string;
+  sectorCode: string;
+  sectorTitle: string;
+  tacticalDesc: string;
+  badge: string;
+  x: number;
+  y: number;
+  doorX?: number;
+  doorY?: number;
+  color: string;
+  secondaryColor?: string;
+  icon: string;
+}
+

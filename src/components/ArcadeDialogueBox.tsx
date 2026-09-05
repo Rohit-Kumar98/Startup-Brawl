@@ -53,7 +53,14 @@ export const ArcadeDialogueBox: React.FC = () => {
       );
       return;
     }
-    const timer = setInterval(() => setCrisisTimeLeft((prev) => prev - 1), 1000);
+    const timer = setInterval(() => {
+      setCrisisTimeLeft((prev) => {
+        if (prev > 1) {
+          sound.playCrisisTick();
+        }
+        return prev - 1;
+      });
+    }, 1000);
     return () => clearInterval(timer);
   }, [phase, crisisTimeLeft, chosenStartup, applyDecision]);
 
@@ -85,11 +92,11 @@ export const ArcadeDialogueBox: React.FC = () => {
       } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S' || e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
         e.preventDefault();
         setSelectedOptionIndex((prev) => (prev + 1) % choices.length);
-        sound.playClick();
+        sound.playChoiceHover();
       } else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
         e.preventDefault();
         setSelectedOptionIndex((prev) => (prev - 1 + choices.length) % choices.length);
-        sound.playClick();
+        sound.playChoiceHover();
       } else if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         const ch = choices[selectedOptionIndex] || choices[0];
@@ -153,40 +160,32 @@ export const ArcadeDialogueBox: React.FC = () => {
   const StatusIcon = theme.icon;
 
   // -----------------------------------------------------------------
-  // 0. TRAVELING MODE (MAP JOURNEY): OPTIONS ARE HIDDEN!
+  // 0. TRAVELING MODE (MAP JOURNEY): COMPACT NON-BLOCKING NAVIGATION CHIP
   // -----------------------------------------------------------------
   if (phase === 'map_journey') {
     return (
-      <div className="absolute bottom-4 inset-x-4 max-w-xl mx-auto z-30 pointer-events-none select-none">
+      <div className="absolute bottom-4 left-4 z-30 pointer-events-none select-none max-w-sm sm:max-w-md">
         <motion.div
-          initial={{ opacity: 0, y: 25 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          className="p-3.5 rounded-2xl bg-[#080d22]/90 border-2 border-[#38bdf8] border-b-4 border-b-[#0284c7] backdrop-blur-md shadow-2xl flex items-center justify-between gap-3 pointer-events-auto"
+          exit={{ opacity: 0, y: 10 }}
+          className="px-3.5 py-2 rounded-xl bg-[#080d22]/95 border-2 border-[#38bdf8] border-b-4 border-b-[#0284c7] backdrop-blur-md shadow-xl flex items-center gap-3 pointer-events-auto"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#38bdf8] to-[#1d4ed8] border-2 border-white flex items-center justify-center text-2xl shadow-md shrink-0 animate-bounce">
-              {currentStage.mentorAvatar}
-            </div>
-            <div className="text-left">
-              <div className="flex items-center gap-1.5">
-                <span className="brawl-text text-[11px] text-[#38bdf8]">
-                  TRAVELING TO NEXT STATION:
-                </span>
-              </div>
-              <div className="brawl-text text-sm sm:text-base text-white tracking-wide">
-                {currentStage.locationName} • {currentStage.departmentName}
-              </div>
-              <div className="text-[11px] text-gray-300 font-sans">
-                Walk into the glowing light beacon to unlock options!
-              </div>
-            </div>
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#38bdf8] to-[#1d4ed8] border border-white flex items-center justify-center text-lg shadow shrink-0">
+            {currentStage.mentorAvatar}
           </div>
-
-          <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0c142c] border border-sky-500/50 text-sky-300 font-brawl text-xs">
-              <Navigation className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-              <span>FOLLOW CHEVRONS</span>
+          <div className="text-left min-w-0">
+            <div className="flex items-center gap-1.5">
+              <Navigation className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+              <span className="text-[10px] font-black tracking-wider text-[#38bdf8] uppercase font-mono">
+                ROOM TARGET:
+              </span>
+              <span className="text-[10px] font-extrabold text-yellow-300 uppercase font-mono">
+                [{ecellConfig.buildingLocations[currentStageIndex]?.sectorCode || 'ROOM'}]
+              </span>
+            </div>
+            <div className="text-xs font-bold text-white truncate font-sans">
+              {currentStage.locationName} • <span className="text-yellow-300 font-mono font-bold">[E] TALK</span>
             </div>
           </div>
         </motion.div>
@@ -447,7 +446,7 @@ export const ArcadeDialogueBox: React.FC = () => {
                 </span>
               </div>
               <div className="text-[11px] font-bold text-sky-400 font-mono tracking-wider mt-0.5">
-                📍 {currentStage.locationName.toUpperCase()}
+                ⚡ SECTOR: {ecellConfig.buildingLocations[currentStageIndex]?.sectorCode || 'SEC'} // {currentStage.locationName.toUpperCase()}
               </div>
             </div>
           </div>
@@ -486,7 +485,12 @@ export const ArcadeDialogueBox: React.FC = () => {
                   sound.playClick();
                   applyDecision(ch.deltas, ch.title, ch.outcomeNarrative, ch.ecellTakeaway, ch.isCorrect);
                 }}
-                onMouseEnter={() => setSelectedOptionIndex(idx)}
+                onMouseEnter={() => {
+                  if (selectedOptionIndex !== idx) {
+                    setSelectedOptionIndex(idx);
+                    sound.playChoiceHover();
+                  }
+                }}
                 className={`w-full group relative flex items-center gap-3.5 p-3 sm:p-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left ${
                   isSelected
                     ? 'border-yellow-400 bg-[#162758] shadow-[0_0_25px_rgba(250,204,21,0.3)] ring-2 ring-yellow-400 -translate-y-0.5'

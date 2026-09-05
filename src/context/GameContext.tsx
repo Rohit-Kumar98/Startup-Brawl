@@ -51,7 +51,9 @@ interface GameContextType {
   openECellReveal: () => void;
   restartGame: () => void;
   triggerDelta: (text: string, type: 'positive' | 'negative' | 'neutral', statName?: string) => void;
+  applyArenaPickup: (type: 'energy' | 'money' | 'score', amount: number) => void;
 }
+
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
@@ -261,6 +263,22 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPhase('cinematic_intro');
   }, []);
 
+  const applyArenaPickup = useCallback((type: 'energy' | 'money' | 'score', amount: number) => {
+    if (type === 'energy') {
+      sound.playPowerupPickup();
+      setStats((prev) => ({ ...prev, energy: Math.min(100, prev.energy + amount) }));
+      triggerDelta(`+${amount}⚡ ENERGY CELL`, 'positive', 'energy');
+    } else if (type === 'money') {
+      sound.playMoney();
+      setStats((prev) => ({ ...prev, money: prev.money + amount }));
+      triggerDelta(`+₹${amount.toLocaleString()}💰 VENTURE CAPITAL`, 'positive', 'money');
+    } else if (type === 'score') {
+      sound.playPowerupPickup();
+      setStats((prev) => ({ ...prev, score: Math.min(100, prev.score + amount) }));
+      triggerDelta(`+${amount}★ XP MATRIX`, 'positive', 'score');
+    }
+  }, [triggerDelta]);
+
   // Keyboard shortcut listener (Space = Next, 1/2/3 = Choice, H = Help, M = Mute)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -305,7 +323,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         finishPitchMontage,
         openECellReveal,
         restartGame,
-        triggerDelta
+        triggerDelta,
+        applyArenaPickup
       }}
     >
       {children}
