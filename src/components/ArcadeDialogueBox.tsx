@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useGame } from '../context/GameContext';
 import { ecellConfig } from '../config/ecellConfig';
+import { getStartupChallenge } from '../config/startupChallenges';
 import { motion } from 'framer-motion';
 import { 
   ArrowRight, 
   HelpCircle, 
-  Timer, 
-  Trophy, 
   Sparkles, 
   TrendingUp, 
   TrendingDown, 
   Activity, 
-  Navigation 
+  Navigation,
+  AlertCircle,
+  XCircle,
+  CheckCircle2
 } from 'lucide-react';
 import { sound } from '../utils/soundEffects';
 
@@ -30,103 +32,103 @@ export const ArcadeDialogueBox: React.FC = () => {
 
   const currentStage = ecellConfig.stages[currentStageIndex];
 
-  // Interactive Card Selection States
-  const [selectedOptionIndex, setSelectedOptionIndex] = useState<number>(0);
-  const [crisisTimeLeft, setCrisisTimeLeft] = useState<number>(10);
+  // Retrieve official room challenge from content team
+  const roomChallenge = useMemo(() => {
+    if (!chosenStartup || !currentStage) return null;
+    return getStartupChallenge(chosenStartup.id, currentStage.id);
+  }, [chosenStartup, currentStage]);
+
+  // Normalized choices
+  const choices = useMemo(() => {
+    if (roomChallenge) {
+      return roomChallenge.choices.map((c) => ({
+        id: c.id,
+        letter: c.letter,
+        title: `${c.letter}) ${c.text}`,
+        text: c.text,
+        ratingBadge: c.ratingBadge,
+        scoreDelta: c.scoreDelta,
+        deltas: { score: c.scoreDelta },
+        isCorrect: c.isCorrect,
+        outcomeNarrative: c.outcomeNarrative,
+        ecellTakeaway: c.ecellTakeaway,
+      }));
+    }
+    if (currentStage?.choices) {
+      return currentStage.choices.map((c, idx) => ({
+        id: c.id,
+        letter: (['A', 'B', 'C'][idx] || 'A') as 'A' | 'B' | 'C',
+        title: c.title,
+        text: c.title,
+        ratingBadge: c.isCorrect ? '🟢 +100%' : '🔴 −25%',
+        scoreDelta: c.deltas?.score ?? 0,
+        deltas: c.deltas,
+        isCorrect: c.isCorrect,
+        outcomeNarrative: c.outcomeNarrative,
+        ecellTakeaway: c.ecellTakeaway,
+      }));
+    }
+    return [];
+  }, [roomChallenge, currentStage]);
+
+  // Interactive Card Selection States (null by default so no option is pre-highlighted in yellow)
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState<number | null>(null);
 
   // Reset interactive selections on stage change
   useEffect(() => {
-    setSelectedOptionIndex(0);
-    setCrisisTimeLeft(10);
+    setSelectedOptionIndex(null);
   }, [currentStageIndex]);
 
-  // 10s Crisis countdown
+  // Keyboard controls for options - Quick 1/A, 2/B, 3/C answerable!
   useEffect(() => {
-    if (phase !== 'crisis_active') return;
-    if (crisisTimeLeft <= 0) {
-      const crisis = chosenStartup?.crisisType || ecellConfig.startups[0].crisisType;
-      applyDecision(
-        { score: -15 },
-        crisis.consequences.choiceB.label,
-        "Time ran out! Silence allowed rumors to spread unchecked across hostel groups.",
-        "In PR, rapid transparency is the only way to manage a crisis."
-      );
-      return;
-    }
-    const timer = setInterval(() => {
-      setCrisisTimeLeft((prev) => {
-        if (prev > 1) {
-          sound.playCrisisTick();
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [phase, crisisTimeLeft, chosenStartup, applyDecision]);
-
-  // Keyboard controls for options - Quick 1-key answerable!
-  useEffect(() => {
-    if (phase !== 'stage_active' || !currentStage?.choices) return;
+    if (phase !== 'stage_active' || choices.length === 0) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
-      const choices = currentStage.choices;
-      if (!choices || choices.length === 0) return;
-
-      if (e.key === '1') {
+      if (e.key === '1' || e.key === 'a' || e.key === 'A') {
         e.preventDefault();
         sound.playClick();
         const ch = choices[0];
-        if (ch) applyDecision(ch.deltas, ch.title, ch.outcomeNarrative, ch.ecellTakeaway, ch.isCorrect);
-      } else if (e.key === '2' && choices.length > 1) {
+        if (ch) applyDecision(ch.deltas, ch.title, ch.outcomeNarrative, ch.ecellTakeaway, ch.isCorrect, ch.ratingBadge);
+      } else if ((e.key === '2' || e.key === 'b' || e.key === 'B') && choices.length > 1) {
         e.preventDefault();
         sound.playClick();
         const ch = choices[1];
-        if (ch) applyDecision(ch.deltas, ch.title, ch.outcomeNarrative, ch.ecellTakeaway, ch.isCorrect);
-      } else if (e.key === '3' && choices.length > 2) {
+        if (ch) applyDecision(ch.deltas, ch.title, ch.outcomeNarrative, ch.ecellTakeaway, ch.isCorrect, ch.ratingBadge);
+      } else if ((e.key === '3' || e.key === 'c' || e.key === 'C') && choices.length > 2) {
         e.preventDefault();
         sound.playClick();
         const ch = choices[2];
-        if (ch) applyDecision(ch.deltas, ch.title, ch.outcomeNarrative, ch.ecellTakeaway, ch.isCorrect);
+        if (ch) applyDecision(ch.deltas, ch.title, ch.outcomeNarrative, ch.ecellTakeaway, ch.isCorrect, ch.ratingBadge);
       } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S' || e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
         e.preventDefault();
-        setSelectedOptionIndex((prev) => (prev + 1) % choices.length);
+        setSelectedOptionIndex((prev) => (prev === null ? 0 : (prev + 1) % choices.length));
         sound.playChoiceHover();
-      } else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+      } else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === 'ArrowLeft') {
         e.preventDefault();
-        setSelectedOptionIndex((prev) => (prev - 1 + choices.length) % choices.length);
+        setSelectedOptionIndex((prev) => (prev === null ? choices.length - 1 : (prev - 1 + choices.length) % choices.length));
         sound.playChoiceHover();
       } else if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        const ch = choices[selectedOptionIndex] || choices[0];
+        const ch = (selectedOptionIndex !== null ? choices[selectedOptionIndex] : null) || choices[0];
         if (ch) {
-          applyDecision(ch.deltas, ch.title, ch.outcomeNarrative, ch.ecellTakeaway, ch.isCorrect);
+          applyDecision(ch.deltas, ch.title, ch.outcomeNarrative, ch.ecellTakeaway, ch.isCorrect, ch.ratingBadge);
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [phase, currentStage, selectedOptionIndex, applyDecision]);
+  }, [phase, choices, selectedOptionIndex, applyDecision]);
 
   if (!chosenStartup || !currentStage) return null;
 
-  // Auto-dismiss outcome after 3.8 seconds if user doesn't click
-  useEffect(() => {
-    if (phase === 'stage_outcome') {
-      const timer = setTimeout(() => {
-        advanceToNextStage();
-      }, 3800);
-      return () => clearTimeout(timer);
-    }
-  }, [phase, advanceToNextStage]);
-
-  const successRate = Math.max(0, Math.min(100, stats.score));
+  const successRate = Math.max(25, Math.min(75, stats.score));
 
   // Determine bar color theme dynamically
   const getTheme = (rate: number) => {
-    if (rate >= 70) {
+    if (rate >= 65) {
       return {
         barGradient: 'from-emerald-400 via-teal-300 to-cyan-400',
         textColor: 'text-emerald-300',
@@ -158,6 +160,7 @@ export const ArcadeDialogueBox: React.FC = () => {
 
   const theme = getTheme(successRate);
   const StatusIcon = theme.icon;
+  const isPrRoom = currentStage.id === 'stage-pr';
 
   // -----------------------------------------------------------------
   // 0. TRAVELING MODE (MAP JOURNEY): COMPACT NON-BLOCKING NAVIGATION CHIP
@@ -185,7 +188,7 @@ export const ArcadeDialogueBox: React.FC = () => {
               </span>
             </div>
             <div className="text-xs font-bold text-white truncate font-sans">
-              {currentStage.locationName} • <span className="text-yellow-300 font-mono font-bold">[E] TALK</span>
+              {currentStage.locationName} • <span className="text-yellow-300 font-mono font-bold">[E] ENTER</span>
             </div>
           </div>
         </motion.div>
@@ -197,59 +200,90 @@ export const ArcadeDialogueBox: React.FC = () => {
   // 1. STAGE OUTCOME MODAL: HERO SUCCESS RATE BAR GOING UP / DOWN
   // -----------------------------------------------------------------
   if (phase === 'stage_outcome' && lastOutcome) {
-    const isPositive = lastOutcome.isCorrect !== undefined 
-      ? lastOutcome.isCorrect 
-      : ((lastOutcome.deltasSummary['Startup Score'] ?? 0) > 0);
+    const scoreChange = lastOutcome.scoreDelta ?? 0;
+    const isOptimal = scoreChange >= 8 || lastOutcome.ratingBadge?.includes('🟢');
+    const isWrong = scoreChange < 0 || lastOutcome.isCorrect === false;
 
     return (
-      <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm select-none pointer-events-auto">
+      <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm select-none pointer-events-auto">
         <motion.div
           initial={{ opacity: 0, y: 20, scale: 0.94 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20 }}
           transition={{ type: "spring", stiffness: 320, damping: 25 }}
-          className={`brawl-card w-full max-w-xl sm:max-w-2xl p-5 md:p-6 border-4 border-b-8 shadow-[0_0_50px_rgba(56,189,248,0.4)] max-h-[90vh] overflow-y-auto custom-scrollbar ${
-            isPositive
-              ? 'border-emerald-400 border-b-emerald-700 bg-[#071714] shadow-[0_0_50px_rgba(16,185,129,0.35)]'
-              : 'border-rose-500 border-b-rose-800 bg-[#160a0f] shadow-[0_0_50px_rgba(244,63,94,0.35)]'
+          className={`brawl-card w-full max-w-xl sm:max-w-2xl p-5 md:p-6 border-4 border-b-8 max-h-[90vh] overflow-y-auto custom-scrollbar ${
+            isWrong
+              ? 'border-rose-500 border-b-rose-700 bg-[#0f0e1c] shadow-[0_0_40px_rgba(244,63,94,0.3)]'
+              : isOptimal
+              ? 'border-emerald-400 border-b-emerald-700 bg-[#091518] shadow-[0_0_40px_rgba(16,185,129,0.3)]'
+              : 'border-amber-400 border-b-amber-700 bg-[#14120f] shadow-[0_0_40px_rgba(245,158,11,0.3)]'
           }`}
         >
           {/* Header Ribbon */}
           <div className="flex items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2">
               <span className={`brawl-badge text-xs py-0.5 px-2.5 flex items-center gap-1.5 border-black ${
-                isPositive ? 'bg-emerald-400 text-black' : 'bg-red-500 text-white'
+                isWrong
+                  ? 'bg-rose-500 text-white font-bold'
+                  : isOptimal 
+                  ? 'bg-emerald-400 text-black font-bold' 
+                  : 'bg-amber-400 text-black font-bold'
               }`}>
-                <Trophy className="w-3.5 h-3.5 fill-current" />
-                <span>{isPositive ? 'STRATEGY VALIDATED' : 'TACTICAL MISSTEP'} • {currentStage.departmentName}</span>
+                {isWrong ? (
+                  <>
+                    <XCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>TACTICAL MISSTEP • {roomChallenge?.roomName || currentStage.departmentName}</span>
+                  </>
+                ) : isOptimal ? (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>STRATEGY VALIDATED • {roomChallenge?.roomName || currentStage.departmentName}</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>SUBOPTIMAL MOVE • {roomChallenge?.roomName || currentStage.departmentName}</span>
+                  </>
+                )}
               </span>
             </div>
 
-            <span className="brawl-font text-xs text-sky-400 tracking-wider">
-              {currentStage.locationName.toUpperCase()}
-            </span>
+            {/* Official Content Team Rating Badge */}
+            {lastOutcome.ratingBadge && (
+              <span className="brawl-badge text-xs py-0.5 px-2.5 bg-black/80 text-yellow-300 border-yellow-400/60 font-mono font-bold tracking-wider">
+                {lastOutcome.ratingBadge}
+              </span>
+            )}
           </div>
 
-          {/* Outcome Choice Title */}
+          {/* Outcome Choice Title & Clean Status Tag */}
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <h3 className="brawl-text text-lg sm:text-xl text-white">
               {lastOutcome.choiceTitle}
             </h3>
             <span className={`brawl-badge text-xs py-0.5 px-2.5 ${
-              isPositive 
+              isWrong 
+                ? 'bg-rose-950 text-rose-300 border-rose-500' 
+                : isOptimal 
                 ? 'bg-emerald-950 text-emerald-300 border-emerald-500 animate-pulse' 
-                : 'bg-rose-950 text-rose-300 border-rose-500'
+                : 'bg-amber-950 text-yellow-300 border-yellow-500'
             }`}>
-              {isPositive ? '✅ BRILLIANT STRATEGY!' : '❌ ROOKIE TRAP DETECTED!'}
+              {isWrong ? '❌ ROOKIE TRAP DETECTED' : isOptimal ? '🟢 STRATEGY VALIDATED' : '🟡 TRACTION WITH DOUBT'}
             </span>
           </div>
 
-          {/* Narrative Result - High Contrast & Crisp Font */}
-          <div className="bg-[#081228] p-4 rounded-xl border-2 border-sky-500/40 mb-4 text-sm sm:text-base text-white font-medium font-sans leading-relaxed shadow-sm">
+          {/* Narrative Result */}
+          <div className={`p-4 rounded-xl border-2 mb-4 text-sm sm:text-base text-white font-medium font-sans leading-relaxed shadow-sm ${
+            isWrong
+              ? 'bg-[#170e17] border-rose-500/40'
+              : isOptimal
+              ? 'bg-[#081817] border-emerald-500/40'
+              : 'bg-[#15120a] border-amber-500/40'
+          }`}>
             {lastOutcome.narrative}
           </div>
 
-          {/* DYNAMIC SUCCESS RATE BAR METER (BIGGER & MORE VISIBLE) */}
+          {/* DYNAMIC SUCCESS RATE BAR METER (UP/DOWN SCORE PROGRESSION) */}
           <div className="p-4 rounded-2xl bg-[#060a18] border-2 border-[#1e293b] mb-4 shadow-[0_0_20px_rgba(0,0,0,0.6)]">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -267,14 +301,18 @@ export const ArcadeDialogueBox: React.FC = () => {
                   {successRate}%
                 </span>
                 <span className={`brawl-badge text-xs py-0.5 px-2.5 font-black ${
-                  isPositive ? 'bg-emerald-500 text-black border-black' : 'bg-red-600 text-white border-black'
+                  isWrong
+                    ? 'bg-rose-600 text-white border-black'
+                    : isOptimal
+                    ? 'bg-emerald-500 text-black border-black'
+                    : 'bg-amber-400 text-black border-black'
                 }`}>
-                  {isPositive ? '▲ +20% SUCCESS BOOST' : '▼ -15% RUNWAY PENALTY'}
+                  {scoreChange > 0 ? `▲ +${scoreChange}% SCORE BOOST` : `▼ ${scoreChange}% RUNWAY HIT`}
                 </span>
               </div>
             </div>
 
-            {/* 3D Success Rate Bar (Expanded) */}
+            {/* 3D Success Rate Bar */}
             <div className="relative w-full h-8 sm:h-9 bg-[#090d19] rounded-full border-3 border-black overflow-hidden p-0.5 shadow-inner">
               <div className="w-full h-full bg-[#050711] rounded-full overflow-hidden relative">
                 <motion.div
@@ -293,6 +331,11 @@ export const ArcadeDialogueBox: React.FC = () => {
                   <div className="w-0.5 h-full bg-white shadow-sm" />
                 </div>
               </div>
+            </div>
+
+            <div className="flex justify-between items-center text-[10px] text-gray-400 font-mono mt-1.5 px-1">
+              <span>MIN: 25%</span>
+              <span className="text-yellow-400">TARGET: 75%</span>
             </div>
           </div>
 
@@ -324,102 +367,11 @@ export const ArcadeDialogueBox: React.FC = () => {
   }
 
   // -----------------------------------------------------------------
-  // 2. CRISIS PR EMERGENCY OVERLAY (STAGE 7)
+  // 2. ACTIVE STAGE POP-UP: SITUATION + QUESTION + 3 OPTIONS (A, B, C)
   // -----------------------------------------------------------------
-  if (phase === 'crisis_active') {
-    const crisis = chosenStartup.crisisType;
-
-    return (
-      <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md select-none pointer-events-auto">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.94 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="brawl-card w-full max-w-xl sm:max-w-2xl p-5 md:p-6 border-4 border-red-500 border-b-8 border-b-red-800 shadow-[0_0_50px_rgba(239,68,68,0.4)] bg-[#0c0816] max-h-[90vh] overflow-y-auto custom-scrollbar"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="brawl-badge bg-red-600 text-white border-black text-xs py-0.5 px-2.5 animate-pulse">
-                🚨 PR RED ALERT
-              </span>
-              <span className="brawl-text text-sm sm:text-base text-white">{crisis.title}</span>
-            </div>
-            <div className="flex items-center gap-1.5 font-brawl text-xs font-bold text-red-400 bg-black/60 px-2.5 py-1 rounded-lg border border-red-800">
-              <Timer className="w-3.5 h-3.5 text-red-400" />
-              <span>00:{crisisTimeLeft < 10 ? `0${crisisTimeLeft}` : crisisTimeLeft}s</span>
-            </div>
-          </div>
-
-          <p className="text-sm sm:text-base text-red-100 mb-4 bg-black/60 p-4 rounded-xl border border-red-900/60 font-sans font-medium leading-relaxed">
-            {crisis.description}
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-            <button
-              onClick={() => {
-                applyDecision(
-                  { score: -15 },
-                  "Aggressive Public Attack",
-                  crisis.consequences.choiceA.text,
-                  "Public Relations is about emotional self-control. IEC SOA PR helps steer the narrative.",
-                  false
-                );
-              }}
-              className="p-3.5 rounded-xl bg-[#1a0f15] hover:bg-[#281320] border-2 border-red-800 hover:border-red-400 text-left transition-all active:translate-y-0.5"
-            >
-              <div className="text-sm sm:text-base font-bold font-sans text-white">A) Attack Publicly</div>
-              <div className="text-xs sm:text-sm text-slate-200 font-sans font-medium mt-1">Flame critics on hostel Reddit & blame Razorpay</div>
-              <div className="brawl-badge bg-red-950 text-red-400 border-red-700 text-[9px] mt-2.5 inline-block">
-                DEFENSIVE AGGRESSION
-              </div>
-            </button>
-
-            <button
-              onClick={() => {
-                applyDecision(
-                  { score: -15 },
-                  "Mute & Ignore",
-                  crisis.consequences.choiceB.text,
-                  "Silence is seen as guilt. IEC SOA PR teaches proactive communication.",
-                  false
-                );
-              }}
-              className="p-3.5 rounded-xl bg-[#181120] hover:bg-[#261833] border-2 border-purple-900 hover:border-purple-400 text-left transition-all active:translate-y-0.5"
-            >
-              <div className="text-sm sm:text-base font-bold font-sans text-white">B) Ignore & Ghost</div>
-              <div className="text-xs sm:text-sm text-slate-200 font-sans font-medium mt-1">Turn off phone and wait for drama to fade</div>
-              <div className="brawl-badge bg-purple-950 text-purple-300 border-purple-700 text-[9px] mt-2.5 inline-block">
-                PASSIVE SILENCE
-              </div>
-            </button>
-
-            <button
-              onClick={() => {
-                applyDecision(
-                  { score: 20 },
-                  "Radical Transparency & Refund",
-                  crisis.consequences.choiceC.text,
-                  "IEC SOA PR turns disasters into user loyalty through total transparency and actionable remediation.",
-                  true
-                );
-              }}
-              className="p-3.5 rounded-xl bg-[#0c1f19] hover:bg-[#122e26] border-2 border-emerald-600 hover:border-emerald-400 text-left transition-all active:translate-y-0.5"
-            >
-              <div className="text-sm sm:text-base font-bold font-sans text-white">C) Transparent Refund</div>
-              <div className="text-xs sm:text-sm text-slate-200 font-sans font-medium mt-1">Apologize publicly, refund 2x & deploy hotfix</div>
-              <div className="brawl-badge bg-emerald-950 text-emerald-300 border-emerald-600 text-[9px] mt-2.5 inline-block">
-                RADICAL ACCOUNTABILITY
-              </div>
-            </button>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // -----------------------------------------------------------------
-  // 3. ARRIVED AT LOCATION: POP-UP WINDOW MODAL DIALOGUE & CHOICES
-  // -----------------------------------------------------------------
-  const choices = currentStage.choices || [];
+  const challengeTitle = roomChallenge?.challengeTitle || currentStage.locationName;
+  const situationText = roomChallenge?.situation || currentStage.mentorDialogue;
+  const questionText = roomChallenge?.question || currentStage.question;
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md select-none pointer-events-auto">
@@ -428,25 +380,33 @@ export const ArcadeDialogueBox: React.FC = () => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.92, y: 15 }}
         transition={{ type: "spring", stiffness: 380, damping: 26 }}
-        className="relative w-full max-w-xl sm:max-w-2xl brawl-card p-5 sm:p-6 border-4 border-sky-400 border-b-8 border-b-sky-700 shadow-[0_0_60px_rgba(56,189,248,0.45),0_25px_60px_rgba(0,0,0,0.95)] bg-[#070f26] text-white max-h-[90vh] overflow-y-auto custom-scrollbar flex flex-col justify-between"
+        className={`relative w-full max-w-xl sm:max-w-2xl brawl-card p-5 sm:p-6 border-4 border-b-8 max-h-[92vh] overflow-y-auto custom-scrollbar flex flex-col justify-between ${
+          isPrRoom 
+            ? 'border-red-500 border-b-red-800 shadow-[0_0_60px_rgba(239,68,68,0.45)] bg-[#0d0716]'
+            : 'border-sky-400 border-b-sky-700 shadow-[0_0_60px_rgba(56,189,248,0.45),0_25px_60px_rgba(0,0,0,0.95)] bg-[#070f26]'
+        }`}
       >
         {/* Top Window Header */}
         <div className="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-sky-500/30">
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-400 to-blue-600 border-2 border-white flex items-center justify-center text-xl shadow-md shrink-0">
+            <span className={`w-10 h-10 rounded-xl border-2 border-white flex items-center justify-center text-xl shadow-md shrink-0 ${
+              isPrRoom ? 'bg-gradient-to-tr from-red-600 to-rose-700' : 'bg-gradient-to-tr from-sky-400 to-blue-600'
+            }`}>
               {currentStage.mentorAvatar}
             </span>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="brawl-badge bg-sky-400 text-black border-black text-xs py-0.5 px-2.5 font-black uppercase tracking-wider">
-                  {currentStage.departmentName}
+                <span className={`brawl-badge text-black text-xs py-0.5 px-2.5 font-black uppercase tracking-wider ${
+                  isPrRoom ? 'bg-red-500 text-white' : 'bg-sky-400'
+                }`}>
+                  {roomChallenge?.roomName ? roomChallenge.roomName.toUpperCase() : currentStage.departmentName}
                 </span>
                 <span className="text-xs sm:text-sm font-bold text-sky-200 font-sans truncate">
-                  • {currentStage.mentorName}
+                  • {chosenStartup.name}
                 </span>
               </div>
               <div className="text-[11px] font-bold text-sky-400 font-mono tracking-wider mt-0.5">
-                ⚡ SECTOR: {ecellConfig.buildingLocations[currentStageIndex]?.sectorCode || 'SEC'} // {currentStage.locationName.toUpperCase()}
+                ⚡ SECTOR: {ecellConfig.buildingLocations[currentStageIndex]?.sectorCode || 'SEC'} // “{challengeTitle}”
               </div>
             </div>
           </div>
@@ -463,68 +423,86 @@ export const ArcadeDialogueBox: React.FC = () => {
           )}
         </div>
 
-        {/* Small Question Banner - High Contrast & High Visibility */}
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-sky-950 via-[#0c1a40] to-[#0a1533] border-2 border-sky-400 mb-3.5 shadow-md">
-          <div className="flex items-center gap-1.5 text-yellow-300 font-bold text-xs uppercase tracking-wider mb-1">
-            <Sparkles className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+        {/* 1. SITUATION CARD (WARM AMBER / GOLD INTEL BRIEFING) */}
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#140e05] border-2 border-amber-500/80 mb-3 shadow-[0_0_20px_rgba(245,158,11,0.15)] text-left">
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-amber-400 text-black font-black text-xs uppercase tracking-wider font-mono shadow-sm">
+              <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>SITUATION</span>
+            </div>
+            <span className="text-[11px] font-mono text-amber-300 font-extrabold tracking-wider">
+              CHALLENGE: “{challengeTitle}”
+            </span>
+          </div>
+          <p className="text-sm sm:text-base text-amber-50 font-sans font-medium leading-relaxed">
+            {situationText}
+          </p>
+        </div>
+
+        {/* 2. TACTICAL QUESTION CARD (ELECTRIC NEON CYAN / AZURE) */}
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-[#051c2e] via-[#092a47] to-[#051c2e] border-2 border-cyan-400 mb-3.5 shadow-[0_0_25px_rgba(34,211,238,0.25)] text-left">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-cyan-400 text-black font-black text-xs uppercase tracking-wider font-mono mb-2 shadow-sm">
+            <Sparkles className="w-3.5 h-3.5 fill-black" />
             <span>TACTICAL QUESTION</span>
           </div>
-          <h2 className="text-base sm:text-lg md:text-xl font-extrabold text-white font-sans leading-snug tracking-normal">
-            {currentStage.question}
+          <h2 className="text-base sm:text-lg md:text-xl font-black text-white font-sans leading-snug tracking-normal">
+            {questionText}
           </h2>
         </div>
 
-        {/* 3 Small, Quick-Answer Option Buttons - High Contrast & High Visibility */}
+        {/* 3. THREE QUICK-ANSWER CHOICES (A, B, C) (HOVER-ONLY YELLOW EFFECT) */}
         <div className="space-y-2.5 mb-3.5">
           {choices.map((ch, idx) => {
-            const isSelected = selectedOptionIndex === idx;
+            const isKeyboardSelected = selectedOptionIndex === idx;
+
             return (
               <button
                 key={ch.id}
                 onClick={() => {
                   sound.playClick();
-                  applyDecision(ch.deltas, ch.title, ch.outcomeNarrative, ch.ecellTakeaway, ch.isCorrect);
+                  applyDecision(
+                    ch.deltas, 
+                    ch.title, 
+                    ch.outcomeNarrative, 
+                    ch.ecellTakeaway, 
+                    ch.isCorrect,
+                    ch.ratingBadge
+                  );
                 }}
                 onMouseEnter={() => {
-                  if (selectedOptionIndex !== idx) {
-                    setSelectedOptionIndex(idx);
-                    sound.playChoiceHover();
-                  }
+                  sound.playChoiceHover();
                 }}
                 className={`w-full group relative flex items-center gap-3.5 p-3 sm:p-3.5 rounded-2xl border-2 transition-all cursor-pointer text-left ${
-                  isSelected
+                  isKeyboardSelected
                     ? 'border-yellow-400 bg-[#162758] shadow-[0_0_25px_rgba(250,204,21,0.3)] ring-2 ring-yellow-400 -translate-y-0.5'
-                    : 'border-sky-500/40 bg-[#0c1636] hover:border-yellow-400 hover:bg-[#13224d]'
+                    : 'border-sky-500/40 bg-[#0c1636] hover:border-yellow-400 hover:bg-[#162758] hover:shadow-[0_0_25px_rgba(250,204,21,0.3)] hover:ring-2 hover:ring-yellow-400 hover:-translate-y-0.5'
                 }`}
               >
-                {/* Hotkey Badge */}
+                {/* Letter / Hotkey Badge */}
                 <div className={`w-8 h-8 rounded-xl border-2 font-mono font-black text-sm flex items-center justify-center shrink-0 transition-colors shadow ${
-                  isSelected
-                    ? 'bg-yellow-400 text-black border-black'
-                    : 'border-sky-400/50 bg-[#081026] text-sky-300 group-hover:bg-yellow-400 group-hover:text-black group-hover:border-black'
+                  isKeyboardSelected
+                    ? 'bg-yellow-400 text-black border-black scale-105 shadow-md'
+                    : 'border-sky-400/50 bg-[#081026] text-sky-300 group-hover:bg-yellow-400 group-hover:text-black group-hover:border-black group-hover:scale-105'
                 }`}>
-                  {idx + 1}
+                  {ch.letter}
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <div className={`text-sm sm:text-base font-bold font-sans tracking-wide leading-snug transition-colors ${
-                    isSelected ? 'text-yellow-300' : 'text-white group-hover:text-yellow-300'
+                    isKeyboardSelected ? 'text-yellow-300' : 'text-white group-hover:text-yellow-300'
                   }`}>
-                    {ch.title}
-                  </div>
-                  <div className="text-xs sm:text-sm text-sky-100 font-sans font-medium leading-normal mt-0.5 transition-colors">
-                    {ch.description}
+                    {ch.text}
                   </div>
                 </div>
 
                 {/* Instant Action Badge */}
                 <div className="shrink-0">
                   <span className={`brawl-badge text-[10px] py-1 px-2.5 font-bold transition-all ${
-                    isSelected
+                    isKeyboardSelected
                       ? 'bg-yellow-400 text-black border-black opacity-100'
-                      : 'bg-[#081026] text-sky-300 border-sky-400/50 opacity-0 group-hover:opacity-100'
+                      : 'bg-[#081026] text-sky-300 border-sky-400/50 opacity-0 group-hover:opacity-100 group-hover:bg-yellow-400 group-hover:text-black group-hover:border-black'
                   }`}>
-                    TAP ➔
+                    SELECT ➔
                   </span>
                 </div>
               </button>
@@ -532,14 +510,14 @@ export const ArcadeDialogueBox: React.FC = () => {
           })}
         </div>
 
-        {/* Quick Answer Instructions & Shortcuts */}
+        {/* Keyboard Shortcuts Helper */}
         <div className="flex items-center justify-between pt-2.5 border-t border-sky-500/30 text-xs font-sans text-slate-200">
           <div className="flex items-center gap-2">
-            <span className="text-yellow-300 font-bold">QUICK ANSWER:</span>
-            <span>Tap any option or press <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-sky-400/60 text-yellow-300 font-mono font-bold text-xs">1</kbd> <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-sky-400/60 text-yellow-300 font-mono font-bold text-xs">2</kbd> <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-sky-400/60 text-yellow-300 font-mono font-bold text-xs">3</kbd></span>
+            <span className="text-yellow-300 font-bold">HOTKEYS:</span>
+            <span>Press <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-sky-400/60 text-yellow-300 font-mono font-bold text-xs">A</kbd> / <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-sky-400/60 text-yellow-300 font-mono font-bold text-xs">1</kbd>, <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-sky-400/60 text-yellow-300 font-mono font-bold text-xs">B</kbd> / <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-sky-400/60 text-yellow-300 font-mono font-bold text-xs">2</kbd>, <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-sky-400/60 text-yellow-300 font-mono font-bold text-xs">C</kbd> / <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-sky-400/60 text-yellow-300 font-mono font-bold text-xs">3</kbd></span>
           </div>
           <div className="hidden sm:flex items-center gap-1 text-sky-300 font-extrabold text-xs">
-            <span>⚡ 1-TAP</span>
+            <span>⚡ INSTANT ANSWER</span>
           </div>
         </div>
       </motion.div>

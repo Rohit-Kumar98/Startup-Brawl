@@ -31,11 +31,11 @@ export const HUD: React.FC = () => {
   }
 
   const currentStage = ecellConfig.stages[currentStageIndex];
-  const successRate = Math.max(0, Math.min(100, stats.score));
+  const successRate = Math.max(25, Math.min(75, stats.score));
 
-  // Determine bar color theme dynamically
+  // Determine bar color theme dynamically (Strictly between 25% and 75%)
   const getTheme = (rate: number) => {
-    if (rate >= 70) {
+    if (rate >= 65) {
       return {
         barGradient: 'from-emerald-400 via-teal-300 to-cyan-400',
         textColor: 'text-emerald-300',
@@ -45,7 +45,7 @@ export const HUD: React.FC = () => {
         icon: TrendingUp,
       };
     }
-    if (rate >= 40) {
+    if (rate >= 45) {
       return {
         barGradient: 'from-yellow-400 via-amber-300 to-sky-400',
         textColor: 'text-yellow-300',

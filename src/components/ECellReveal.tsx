@@ -94,86 +94,124 @@ export const ECellReveal: React.FC = () => {
           </p>
         </div>
 
-        {/* 3. PROMINENT SCAN TO REGISTER SECTION */}
-        <div className="p-6 sm:p-7 rounded-3xl bg-[#060a16] border-3 border-yellow-400/80 border-b-6 border-b-amber-600 mb-6 max-w-md mx-auto flex flex-col items-center shadow-[0_0_35px_rgba(250,204,21,0.25)] relative overflow-hidden">
-          
-          {/* Subtle Ambient Radial Glow */}
-          <div className="absolute inset-0 bg-radial-gradient from-yellow-400/10 via-transparent to-transparent pointer-events-none" />
+        {/* 3. RECRUITMENT POSTER & REGISTRATION SECTION */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6 max-w-2xl mx-auto">
+          {/* Recruitment Poster Container (Ready for user image drop-in: /recruitment_poster.png or /poster.png) */}
+          <div className="p-4 rounded-3xl bg-[#060a16] border-3 border-sky-400/80 border-b-6 border-b-sky-700 flex flex-col items-center justify-center shadow-[0_0_30px_rgba(56,189,248,0.2)] relative overflow-hidden min-h-[300px]">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-950 border border-sky-400 text-[10px] font-mono font-bold text-sky-300 uppercase mb-3">
+              <span>📢 OFFICIAL RECRUITMENT POSTER</span>
+            </div>
 
-          {/* Badge */}
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-400 text-black border-2 border-black text-xs font-black uppercase font-brawl tracking-wider mb-3 shadow">
-            <Sparkles className="w-3.5 h-3.5 fill-black" />
-            <span>ORIENTATION & RECRUITMENT</span>
-          </div>
-
-          <h2 className="brawl-text text-xl sm:text-2xl text-white tracking-wide">
-            SCAN TO REGISTER
-          </h2>
-
-          <p className="text-xs text-sky-200 font-sans mt-1 mb-4 text-center">
-            Point your phone camera or Google Lens to register with <strong className="text-yellow-400">IEC SOA</strong>.
-          </p>
-
-          {/* Crisp, Scannable QR Code */}
-          <div className="relative p-3.5 rounded-2xl bg-white shadow-2xl mb-4 border-4 border-black">
-            {!qrImgError ? (
+            <div className="w-full flex-1 flex flex-col items-center justify-center relative rounded-2xl overflow-hidden bg-slate-900/60 border border-slate-800 p-3">
+              {/* Attempt to load poster image if user drops it into public/recruitment_poster.png */}
               <img 
-                src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=https%3A%2F%2Fiecsoa.com&color=050711&bgcolor=ffffff"
-                alt="Scan to Register - IEC SOA"
-                className="w-44 h-44 sm:w-48 sm:h-48 block rounded-lg"
-                onError={() => setQrImgError(true)}
+                src="/recruitment_poster.png" 
+                alt="IEC SOA Recruitment 2026 Poster"
+                className="max-h-[320px] w-auto object-contain rounded-xl shadow-lg"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                  const fallback = document.getElementById('poster-fallback-frame');
+                  if (fallback) fallback.style.display = 'flex';
+                }}
               />
-            ) : (
-              /* High-fidelity Inline SVG QR Code Fallback */
-              <svg className="w-44 h-44 sm:w-48 sm:h-48" viewBox="0 0 100 100" fill="currentColor">
-                <rect x="5" y="5" width="25" height="25" fill="#060814" rx="4" />
-                <rect x="9" y="9" width="17" height="17" fill="#FFFFFF" rx="2" />
-                <rect x="13" y="13" width="9" height="9" fill="#060814" />
-                
-                <rect x="70" y="5" width="25" height="25" fill="#060814" rx="4" />
-                <rect x="74" y="9" width="17" height="17" fill="#FFFFFF" rx="2" />
-                <rect x="78" y="13" width="9" height="9" fill="#060814" />
-                
-                <rect x="5" y="70" width="25" height="25" fill="#060814" rx="4" />
-                <rect x="9" y="74" width="17" height="17" fill="#FFFFFF" rx="2" />
-                <rect x="13" y="78" width="9" height="9" fill="#060814" />
 
-                <rect x="35" y="10" width="6" height="6" fill="#060814" />
-                <rect x="45" y="10" width="6" height="6" fill="#060814" />
-                <rect x="55" y="10" width="6" height="6" fill="#060814" />
-                <rect x="35" y="20" width="6" height="6" fill="#060814" />
-                <rect x="50" y="22" width="12" height="6" fill="#060814" />
-                <rect x="10" y="38" width="80" height="4" fill="#060814" />
-                
-                {/* Center IEC SOA Accent Tile */}
-                <rect x="38" y="35" width="24" height="24" fill="#0284c7" rx="4" />
-                <rect x="44" y="41" width="12" height="12" fill="#FFFFFF" rx="2" />
-                
-                <rect x="10" y="48" width="8" height="8" fill="#060814" />
-                <rect x="22" y="52" width="10" height="6" fill="#060814" />
-                <rect x="68" y="48" width="10" height="6" fill="#060814" />
-                <rect x="80" y="52" width="10" height="8" fill="#060814" />
-                <rect x="35" y="65" width="14" height="6" fill="#060814" />
-                <rect x="55" y="65" width="10" height="8" fill="#060814" />
-                <rect x="70" y="70" width="12" height="6" fill="#060814" />
-                <rect x="85" y="75" width="8" height="15" fill="#060814" />
-                <rect x="35" y="80" width="25" height="10" fill="#060814" />
-                <rect x="65" y="85" width="12" height="6" fill="#060814" />
-              </svg>
-            )}
+              {/* Dynamic Styled Fallback Frame until poster is uploaded */}
+              <div 
+                id="poster-fallback-frame"
+                className="w-full h-full flex flex-col items-center justify-center text-center p-4 rounded-xl border border-dashed border-sky-500/40 bg-gradient-to-b from-[#091228] to-[#060a18]"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-400 to-indigo-600 flex items-center justify-center text-2xl mb-2 shadow-md">
+                  🚀
+                </div>
+                <h3 className="brawl-text text-base sm:text-lg text-white mb-1">
+                  IEC SOA RECRUITMENT 2026
+                </h3>
+                <p className="text-xs text-sky-200 font-sans max-w-xs mb-3">
+                  Join the Core Team across Tech, Media, PR, Design, Content & Venture Relations.
+                </p>
+                <div className="flex flex-wrap justify-center gap-1.5 max-w-xs">
+                  <span className="brawl-badge text-[9px] bg-sky-950 text-sky-300 border-sky-700 px-2 py-0.5">DEV & TECH</span>
+                  <span className="brawl-badge text-[9px] bg-purple-950 text-purple-300 border-purple-700 px-2 py-0.5">DESIGN</span>
+                  <span className="brawl-badge text-[9px] bg-rose-950 text-rose-300 border-rose-700 px-2 py-0.5">CRISIS PR</span>
+                  <span className="brawl-badge text-[9px] bg-emerald-950 text-emerald-300 border-emerald-700 px-2 py-0.5">MEDIA</span>
+                  <span className="brawl-badge text-[9px] bg-amber-950 text-amber-300 border-amber-700 px-2 py-0.5">VENTURE</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Direct Link CTA Button */}
-          <a
-            href={ecellConfig.qrCodeLink}
-            target="_blank"
-            rel="noreferrer"
-            className="w-full py-3.5 px-6 brawl-btn brawl-btn-yellow text-sm tracking-wider flex items-center justify-center gap-2 shadow-lg transition-transform active:translate-y-1"
-          >
-            <QrCode className="w-4 h-4 stroke-[3]" />
-            <span>CLICK TO REGISTER ONLINE</span>
-            <ExternalLink className="w-4 h-4 ml-1" />
-          </a>
+          {/* Scan to Register Card */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-[#060a16] border-3 border-yellow-400/80 border-b-6 border-b-amber-600 flex flex-col items-center justify-between shadow-[0_0_35px_rgba(250,204,21,0.25)] relative overflow-hidden">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-400 text-black border-2 border-black text-xs font-black uppercase font-brawl tracking-wider mb-2 shadow">
+              <Sparkles className="w-3.5 h-3.5 fill-black" />
+              <span>SCAN TO REGISTER</span>
+            </div>
+
+            <p className="text-xs text-sky-200 font-sans mb-3 text-center">
+              Scan with camera or Google Lens to join <strong className="text-yellow-400">IEC SOA</strong>.
+            </p>
+
+            {/* Crisp, Scannable QR Code */}
+            <div className="relative p-3 rounded-2xl bg-white shadow-2xl mb-4 border-4 border-black">
+              {!qrImgError ? (
+                <img 
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=https%3A%2F%2Fiecsoa.com&color=050711&bgcolor=ffffff"
+                  alt="Scan to Register - IEC SOA"
+                  className="w-36 h-36 sm:w-40 sm:h-40 block rounded-lg"
+                  onError={() => setQrImgError(true)}
+                />
+              ) : (
+                /* High-fidelity Inline SVG QR Code Fallback */
+                <svg className="w-36 h-36 sm:w-40 sm:h-40" viewBox="0 0 100 100" fill="currentColor">
+                  <rect x="5" y="5" width="25" height="25" fill="#060814" rx="4" />
+                  <rect x="9" y="9" width="17" height="17" fill="#FFFFFF" rx="2" />
+                  <rect x="13" y="13" width="9" height="9" fill="#060814" />
+                  
+                  <rect x="70" y="5" width="25" height="25" fill="#060814" rx="4" />
+                  <rect x="74" y="9" width="17" height="17" fill="#FFFFFF" rx="2" />
+                  <rect x="78" y="13" width="9" height="9" fill="#060814" />
+                  
+                  <rect x="5" y="70" width="25" height="25" fill="#060814" rx="4" />
+                  <rect x="9" y="74" width="17" height="17" fill="#FFFFFF" rx="2" />
+                  <rect x="13" y="78" width="9" height="9" fill="#060814" />
+
+                  <rect x="35" y="10" width="6" height="6" fill="#060814" />
+                  <rect x="45" y="10" width="6" height="6" fill="#060814" />
+                  <rect x="55" y="10" width="6" height="6" fill="#060814" />
+                  <rect x="35" y="20" width="6" height="6" fill="#060814" />
+                  <rect x="50" y="22" width="12" height="6" fill="#060814" />
+                  <rect x="10" y="38" width="80" height="4" fill="#060814" />
+                  
+                  {/* Center IEC SOA Accent Tile */}
+                  <rect x="38" y="35" width="24" height="24" fill="#0284c7" rx="4" />
+                  <rect x="44" y="41" width="12" height="12" fill="#FFFFFF" rx="2" />
+                  
+                  <rect x="10" y="48" width="8" height="8" fill="#060814" />
+                  <rect x="22" y="52" width="10" height="6" fill="#060814" />
+                  <rect x="68" y="48" width="10" height="6" fill="#060814" />
+                  <rect x="80" y="52" width="10" height="8" fill="#060814" />
+                  <rect x="35" y="65" width="14" height="6" fill="#060814" />
+                  <rect x="55" y="65" width="10" height="8" fill="#060814" />
+                  <rect x="70" y="70" width="12" height="6" fill="#060814" />
+                  <rect x="85" y="75" width="8" height="15" fill="#060814" />
+                  <rect x="35" y="80" width="25" height="10" fill="#060814" />
+                  <rect x="65" y="85" width="12" height="6" fill="#060814" />
+                </svg>
+              )}
+            </div>
+
+            {/* Direct Link CTA Button */}
+            <a
+              href={ecellConfig.qrCodeLink}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full py-3 px-4 brawl-btn brawl-btn-yellow text-xs tracking-wider flex items-center justify-center gap-2 shadow-lg transition-transform active:translate-y-1"
+            >
+              <QrCode className="w-4 h-4 stroke-[3]" />
+              <span>CLICK TO REGISTER ONLINE</span>
+              <ExternalLink className="w-3.5 h-3.5 ml-1" />
+            </a>
+          </div>
         </div>
 
         {/* 4. PLAY AGAIN ACTION */}

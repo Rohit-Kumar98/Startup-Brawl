@@ -352,58 +352,23 @@ function findJunctionPath(fromJ: number, toJ: number): number[] {
   return [toJ];
 }
 
-// Raycast line-of-sight test to check if direct diagonal traversal is unobstructed
-function isLineWalkable(x1: number, y1: number, x2: number, y2: number, stepSize = 12): boolean {
-  const dist = Math.hypot(x2 - x1, y2 - y1);
-  if (dist < 1) return true;
-  const steps = Math.ceil(dist / stepSize);
-  for (let s = 1; s <= steps; s++) {
-    const t = s / steps;
-    const px = x1 + (x2 - x1) * t;
-    const py = y1 + (y2 - y1) * t;
-    if (!isWalkable(px, py)) return false;
-  }
-  return true;
-}
-
-// String-pulling path smoother to enable smooth diagonal shortcuts across open hallways
-function smoothPath(rawWp: { x: number; y: number }[]): { x: number; y: number }[] {
-  if (rawWp.length <= 2) return rawWp;
-  const smoothed: { x: number; y: number }[] = [rawWp[0]];
-  let currentIdx = 0;
-
-  while (currentIdx < rawWp.length - 1) {
-    let furthestIdx = currentIdx + 1;
-    for (let testIdx = rawWp.length - 1; testIdx > currentIdx + 1; testIdx--) {
-      if (isLineWalkable(smoothed[smoothed.length - 1].x, smoothed[smoothed.length - 1].y, rawWp[testIdx].x, rawWp[testIdx].y)) {
-        furthestIdx = testIdx;
-        break;
-      }
-    }
-    smoothed.push(rawWp[furthestIdx]);
-    currentIdx = furthestIdx;
-  }
-  return smoothed;
-}
-
 // Full path computation: avatar walks from current position -> door -> corridors -> target door -> INSIDE to mentor!
 function computeAutoPath(fromX: number, fromY: number, targetIdx: number): { x: number; y: number }[] {
   const target = ROOMS[targetIdx];
-  const wp: { x: number; y: number }[] = [];
   const inRoom = getCurrentRoomIdx(fromX, fromY);
 
   // If already in target room, walk directly to mentor
   if (inRoom === targetIdx) {
-    wp.push({ x: target.mentorX, y: target.mentorY });
-    return wp;
+    return [{ x: target.mentorX, y: target.mentorY }];
   }
+
+  const wp: { x: number; y: number }[] = [];
 
   // Step 1: If in another room, walk to that room's door, then corridor entry
   let startJ: number;
   if (inRoom >= 0) {
     if (inRoom === 8) {
       wp.push({ x: 1200, y: 600 });
-      wp.push({ x: 1200, y: 540 });
       wp.push({ x: 1200, y: 400 });
       startJ = 1;
     } else {
@@ -423,7 +388,6 @@ function computeAutoPath(fromX: number, fromY: number, targetIdx: number): { x: 
   // Step 3: Walk to target corridor entry, door, then inside to mentor
   if (targetIdx === 8) {
     wp.push({ x: 1200, y: 400 });
-    wp.push({ x: 1200, y: 540 });
     wp.push({ x: 1200, y: 600 });
     wp.push({ x: 1200, y: 760 });
   } else {
@@ -432,12 +396,14 @@ function computeAutoPath(fromX: number, fromY: number, targetIdx: number): { x: 
     wp.push({ x: target.mentorX, y: target.mentorY });
   }
 
-  const fullRaw = [{ x: fromX, y: fromY }, ...wp];
-  const smoothed = smoothPath(fullRaw);
-  if (smoothed.length > 1 && Math.hypot(smoothed[0].x - fromX, smoothed[0].y - fromY) < 5) {
-    return smoothed.slice(1);
+  // Deduplicate and filter out trivial micro-steps
+  const deduped: { x: number; y: number }[] = [];
+  for (const p of wp) {
+    if (deduped.length === 0 || Math.hypot(p.x - deduped[deduped.length - 1].x, p.y - deduped[deduped.length - 1].y) > 10) {
+      deduped.push(p);
+    }
   }
-  return smoothed;
+  return deduped;
 }
 
 // ============================================================
@@ -475,6 +441,11 @@ export const CampusCanvas: React.FC = () => {
   // Auto-walk
   const autoWP = useRef<{ x: number; y: number }[]>([]);
   const autoIdx = useRef(0);
+  const [isAutoWalking, setIsAutoWalking] = useState(false);
+
+  // Door sound tracking
+  const lastDoorSound = useRef<number>(0);
+  const lastRoomIdx = useRef<number>(-1);
 
   // Interaction zone
   const [isNearActiveMentor, setIsNearActiveMentor] = useState(false);
@@ -493,9 +464,9 @@ export const CampusCanvas: React.FC = () => {
   const hasDraggedMap = useRef(false);
   const [isGrabbing, setIsGrabbing] = useState(false);
 
-  const [zoomDisplay, setZoomDisplay] = useState<number>(1.4);
-  const zoomFactorRef = useRef<number>(1.4);
-  const targetZoomFactor = useRef<number>(1.4);
+  const [zoomDisplay, setZoomDisplay] = useState<number>(1.6);
+  const zoomFactorRef = useRef<number>(1.6);
+  const targetZoomFactor = useRef<number>(1.6);
 
   // HUD refs
   const needleRef = useRef<HTMLDivElement | null>(null);
@@ -527,18 +498,26 @@ export const CampusCanvas: React.FC = () => {
         }
         setNearWrongMentorIdx(nearWrong);
 
-        // If auto-walking and arrived at active mentor, initiate dialogue
-        if (autoWP.current.length > 0 && autoIdx.current >= autoWP.current.length && dActive <= 70) {
-          autoWP.current = [];
-          autoIdx.current = 0;
-          proceedFromMapToStage();
-          sound.playPositive();
+        // Sync auto-walking indicator
+        if (autoWP.current.length > 0) {
+          setIsAutoWalking(true);
+          if (dActive <= 78) {
+            autoWP.current = [];
+            autoIdx.current = 0;
+            targetPos.current = { x: avatarPos.current.x, y: avatarPos.current.y };
+            velocity.current = { x: 0, y: 0 };
+            setIsAutoWalking(false);
+            sound.playMentorGreet();
+          }
+        } else {
+          setIsAutoWalking(false);
         }
       } else {
         setIsNearActiveMentor(false);
         setNearWrongMentorIdx(null);
+        setIsAutoWalking(false);
       }
-    }, 120);
+    }, 100);
     return () => clearInterval(check);
   }, [phase, currentStageIndex, targetMentorPos.x, targetMentorPos.y, proceedFromMapToStage]);
 
@@ -579,8 +558,8 @@ export const CampusCanvas: React.FC = () => {
   };
   const resetZoom = () => {
     sound.playClick();
-    targetZoomFactor.current = 1.4;
-    setZoomDisplay(1.4);
+    targetZoomFactor.current = 1.6;
+    setZoomDisplay(1.6);
     isManualCamera.current = false;
     setShowRecenter(false);
   };
@@ -841,6 +820,11 @@ export const CampusCanvas: React.FC = () => {
       const isKeyboardActive = kx !== 0 || ky !== 0;
 
       if (isKeyboardActive) {
+        if (autoWP.current.length > 0) {
+          autoWP.current = [];
+          autoIdx.current = 0;
+          setIsAutoWalking(false);
+        }
         const kLen = Math.hypot(kx, ky);
         targetVx = (kx / kLen) * MAX_SPEED;
         targetVy = (ky / kLen) * MAX_SPEED;
@@ -857,11 +841,11 @@ export const CampusCanvas: React.FC = () => {
         let dirY = (currentWp.y - avatarPos.current.y) / (dToCurrent || 1);
 
         // Smooth curved corner easing when approaching waypoint with predictive lookahead
-        if (nextWp && dToCurrent < 48) {
+        if (nextWp && dToCurrent < 52) {
           const dNextX = nextWp.x - currentWp.x;
           const dNextY = nextWp.y - currentWp.y;
           const nextLen = Math.hypot(dNextX, dNextY) || 1;
-          const blend = Math.max(0, (48 - dToCurrent) / 48) * 0.6;
+          const blend = Math.max(0, (52 - dToCurrent) / 52) * 0.65;
           dirX = dirX * (1 - blend) + (dNextX / nextLen) * blend;
           dirY = dirY * (1 - blend) + (dNextY / nextLen) * blend;
           const blendedLen = Math.hypot(dirX, dirY) || 1;
@@ -870,16 +854,34 @@ export const CampusCanvas: React.FC = () => {
         }
 
         const isLastWp = autoIdx.current === autoWP.current.length - 1;
-        const arriveSpeed = isLastWp ? Math.min(MAX_SPEED, Math.max(1.8, dToCurrent * 0.14)) : MAX_SPEED;
+        const AUTO_SPEED = 7.6;
+        const arriveSpeed = isLastWp ? Math.min(AUTO_SPEED, Math.max(2.4, dToCurrent * 0.18)) : AUTO_SPEED;
 
         targetVx = dirX * arriveSpeed;
         targetVy = dirY * arriveSpeed;
+        targetPos.current = { x: avatarPos.current.x, y: avatarPos.current.y };
 
-        if (dToCurrent < 24) {
+        const dActiveMentor = Math.hypot(avatarPos.current.x - targetMentorPos.x, avatarPos.current.y - targetMentorPos.y);
+        if (dActiveMentor <= 78) {
+          autoWP.current = [];
+          autoIdx.current = 0;
+          setIsAutoWalking(false);
+          targetVx = 0;
+          targetVy = 0;
+          targetPos.current = { x: avatarPos.current.x, y: avatarPos.current.y };
+          velocity.current = { x: 0, y: 0 };
+          sound.playMentorGreet();
+        } else if (dToCurrent < 30) {
           autoIdx.current++;
           if (autoIdx.current >= autoWP.current.length) {
             autoWP.current = [];
             autoIdx.current = 0;
+            setIsAutoWalking(false);
+            targetVx = 0;
+            targetVy = 0;
+            targetPos.current = { x: avatarPos.current.x, y: avatarPos.current.y };
+            velocity.current = { x: 0, y: 0 };
+            sound.playMentorGreet();
           }
         }
       }
@@ -990,11 +992,7 @@ export const CampusCanvas: React.FC = () => {
           }
         }
 
-        const prevCycle = walkCycle.current;
-        walkCycle.current += actualSpeed * 0.038;
-        if (actualSpeed > 0.6 && Math.floor(walkCycle.current * 2.2) !== Math.floor(prevCycle * 2.2)) {
-          sound.playFootstep();
-        }
+        walkCycle.current += actualSpeed * 0.055;
 
         if (Math.abs(vx) > 0.2) {
           avatarDir.current = vx < 0 ? 'left' : 'right';
@@ -1020,6 +1018,17 @@ export const CampusCanvas: React.FC = () => {
       // Smooth facing transition
       const targetFacing = avatarDir.current === 'left' ? -1 : 1;
       facingScale.current += (targetFacing - facingScale.current) * 0.28;
+
+      // Door crossing / room entry detection (play sci-fi door sound on room change)
+      const curRoom = getCurrentRoomIdx(avatarPos.current.x, avatarPos.current.y);
+      if (curRoom !== lastRoomIdx.current) {
+        const now = Date.now();
+        if (now - lastDoorSound.current > 700) {
+          sound.playDoorOpen();
+          lastDoorSound.current = now;
+        }
+        lastRoomIdx.current = curRoom;
+      }
 
       // Smooth camera follow with velocity lookahead
       if (!isManualCamera.current) {
@@ -1877,7 +1886,7 @@ export const CampusCanvas: React.FC = () => {
       ROOMS.forEach((r, idx) => {
         const dToDoor = Math.hypot(avatarPos.current.x - r.doorX, avatarPos.current.y - r.doorY);
         const isInside = avatarPos.current.x >= r.x && avatarPos.current.x <= r.x + r.w &&
-                         avatarPos.current.y >= r.y && avatarPos.current.y <= r.y + r.h;
+          avatarPos.current.y >= r.y && avatarPos.current.y <= r.y + r.h;
         const isCur = idx === currentStageIndex;
         const isDone = idx < currentStageIndex;
 
@@ -2377,36 +2386,36 @@ export const CampusCanvas: React.FC = () => {
         }
       }
 
-      // ---- LAYER 7: DIRECTIONAL GUIDANCE CHEVRON TOWARDS ACTIVE MENTOR ----
+      // ---- LAYER 7: HIGH-VISIBILITY DYNAMIC GROUND RADAR & COMPASS ----
       const avX = avatarPos.current.x, avY = avatarPos.current.y;
-      {
-        const angle = Math.atan2(targetMentorPos.y - avY, targetMentorPos.x - avX);
-        ctx.save();
-        ctx.translate(avX, avY + 14);
-        ctx.rotate(angle);
-        const p = Math.sin(time * 8) * 3;
-        ctx.fillStyle = '#FACC15';
-        ctx.shadowColor = '#FACC15';
-        ctx.shadowBlur = 10;
-        ctx.beginPath();
-        ctx.moveTo(34 + p, 0); ctx.lineTo(22 + p, -8); ctx.lineTo(26 + p, 0); ctx.lineTo(22 + p, 8);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = 'rgba(0,240,255,0.7)';
-        ctx.beginPath();
-        ctx.moveTo(20 + p * 0.7, 0); ctx.lineTo(12 + p * 0.7, -5); ctx.lineTo(15 + p * 0.7, 0); ctx.lineTo(12 + p * 0.7, 5);
-        ctx.closePath();
-        ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.restore();
-      }
+      const angleToTarget = Math.atan2(targetMentorPos.y - avY, targetMentorPos.x - avX);
+
+      // A. Ground Cyber Compass Ring
+      ctx.save();
+      ctx.translate(avX, avY + 14);
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.45)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 32, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Pulsing radar arc toward target mentor
+      ctx.strokeStyle = '#FACC15';
+      ctx.lineWidth = 3.5;
+      ctx.shadowColor = '#FACC15';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.arc(0, 0, 32, angleToTarget - 0.45, angleToTarget + 0.45);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.restore();
 
       // ---- LAYER 8: PLAYER FOUNDER AVATAR (TECH CYBER-ENTREPRENEUR & AI COMPANION) ----
       const AVATAR_SCALE = 1.45;
-      const legStride = Math.sin(walkCycle.current * 8) * 6;
-      const armSwing = Math.sin(walkCycle.current * 8) * 5;
+      const legStride = Math.sin(walkCycle.current) * 6.5;
+      const armSwing = Math.sin(walkCycle.current) * 5.5;
       const isMoving = actualSpeed > 0.2;
-      const runBob = isMoving ? Math.abs(Math.sin(walkCycle.current * 8)) * 3 : Math.sin(time * 3) * 1;
+      const runBob = isMoving ? Math.abs(Math.sin(walkCycle.current)) * 3 : Math.sin(time * 3) * 1;
       const runTilt = (vx / MAX_SPEED) * 0.12 - (vy / MAX_SPEED) * 0.04 * facingScale.current;
 
       // 1. Dynamic Ground Shadow under Founder
@@ -2615,11 +2624,11 @@ export const CampusCanvas: React.FC = () => {
 
       ctx.restore();
 
-      // Overhead Name & Startup Viability Bar
+      // Overhead Name & Startup Viability Bar (Clamped strictly to 25-75%)
       ctx.save();
       ctx.textAlign = 'center';
-      const pct = Math.max(0, Math.min(100, stats.score));
-      const barCol = pct >= 70 ? '#22C55E' : pct >= 40 ? '#FACC15' : '#EF4444';
+      const pct = Math.max(25, Math.min(75, stats.score));
+      const barCol = pct >= 65 ? '#22C55E' : pct >= 45 ? '#FACC15' : '#EF4444';
       ctx.font = '900 12px "Lilita One", sans-serif';
       ctx.fillStyle = '#FFF';
       ctx.shadowColor = '#000';
@@ -2632,6 +2641,72 @@ export const CampusCanvas: React.FC = () => {
       ctx.fillStyle = '#1E293B'; ctx.fillRect(avX - bw / 2, avY - 43, bw, bh);
       ctx.fillStyle = barCol; ctx.fillRect(avX - bw / 2, avY - 43, (bw * pct) / 100, bh);
       ctx.restore();
+
+      // ---- LAYER 8.5: ULTRA-PROMINENT OBJECTIVE DIRECTION POINTER (ALWAYS VISIBLE ON TOP) ----
+      {
+        const p = Math.sin(time * 8) * 5;
+        const angle = Math.atan2(targetMentorPos.y - avY, targetMentorPos.x - avX);
+
+        ctx.save();
+        ctx.translate(avX, avY + 14);
+        ctx.rotate(angle);
+
+        // 1. Primary Big Glowing Chevron Arrow with bold black outline
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 4;
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(56 + p, 0);
+        ctx.lineTo(36 + p, -14);
+        ctx.lineTo(42 + p, 0);
+        ctx.lineTo(36 + p, 14);
+        ctx.closePath();
+        ctx.stroke();
+
+        ctx.fillStyle = '#FACC15';
+        ctx.shadowColor = '#FACC15';
+        ctx.shadowBlur = 14;
+        ctx.fill();
+
+        // Inner white/gold core
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.moveTo(52 + p, 0);
+        ctx.lineTo(40 + p, -8);
+        ctx.lineTo(44 + p, 0);
+        ctx.lineTo(40 + p, 8);
+        ctx.closePath();
+        ctx.fill();
+
+        // 2. Secondary Cyan Trail Chevron
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(34 + p * 0.7, 0);
+        ctx.lineTo(20 + p * 0.7, -9);
+        ctx.lineTo(24 + p * 0.7, 0);
+        ctx.lineTo(20 + p * 0.7, 9);
+        ctx.closePath();
+        ctx.stroke();
+
+        ctx.fillStyle = '#00F0FF';
+        ctx.shadowColor = '#00F0FF';
+        ctx.shadowBlur = 10;
+        ctx.fill();
+
+        // 3. Tertiary Small Trail Chevron
+        ctx.fillStyle = '#38BDF8';
+        ctx.beginPath();
+        ctx.moveTo(18 + p * 0.4, 0);
+        ctx.lineTo(10 + p * 0.4, -5);
+        ctx.lineTo(12 + p * 0.4, 0);
+        ctx.lineTo(10 + p * 0.4, 5);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      }
 
       // ---- LAYER 9: PARTICLES ----
       for (let i = particles.current.length - 1; i >= 0; i--) {
@@ -2944,17 +3019,28 @@ export const CampusCanvas: React.FC = () => {
       <div className="absolute bottom-6 right-6 z-20 pointer-events-auto flex items-end gap-3 opacity-90 hover:opacity-100 transition-opacity">
         <button
           onClick={() => {
-            sound.playAutoRoute();
-            const path = computeAutoPath(avatarPos.current.x, avatarPos.current.y, currentStageIndex);
-            autoWP.current = path;
-            autoIdx.current = 0;
-            isManualCamera.current = false;
-            setShowRecenter(false);
+            if (isAutoWalking) {
+              autoWP.current = [];
+              autoIdx.current = 0;
+              setIsAutoWalking(false);
+              sound.playClick();
+            } else {
+              sound.playAutoRoute();
+              const path = computeAutoPath(avatarPos.current.x, avatarPos.current.y, currentStageIndex);
+              autoWP.current = path;
+              autoIdx.current = 0;
+              setIsAutoWalking(true);
+              isManualCamera.current = false;
+              setShowRecenter(false);
+            }
           }}
-          className="brawl-btn brawl-btn-blue text-xs px-3.5 py-2.5 shadow-lg flex items-center gap-1.5"
-          title="Auto-walk inside the department room to the mentor"
+          className={`brawl-btn text-xs px-3.5 py-2.5 shadow-lg flex items-center gap-1.5 transition-all ${isAutoWalking
+              ? 'brawl-btn-yellow ring-4 ring-yellow-400/50 animate-pulse'
+              : 'brawl-btn-blue'
+            }`}
+          title="Auto-walk inside the department room directly to the mentor"
         >
-          <span>WALK TO MENTOR ➔</span>
+          <span>{isAutoWalking ? '🛑 STOP AUTO-RUN' : '⚡ AUTO-RUN TO MENTOR ➔'}</span>
         </button>
 
         <div className="flex flex-col items-center gap-1">

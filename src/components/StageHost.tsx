@@ -110,20 +110,8 @@ export const StageHost: React.FC = () => {
     };
 
     const spawner = setInterval(spawnBubble, 700);
-    const countdown = setInterval(() => {
-      setSurveyTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdown);
-          clearInterval(spawner);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
     return () => {
       clearInterval(spawner);
-      clearInterval(countdown);
     };
   }, [phase, currentStageIndex]);
 
@@ -147,24 +135,6 @@ export const StageHost: React.FC = () => {
 
     return () => clearInterval(interval);
   }, [phase, currentStageIndex, gaugeStopped, gaugeDirection]);
-
-  // Stage 7: Crisis Countdown Timer
-  useEffect(() => {
-    if (phase !== 'crisis_active') return;
-    if (crisisTimeLeft <= 0) {
-      applyDecision(
-        { reputation: -25, score: -15, energy: -20 },
-        "Frozen in Panic",
-        "You hesitated and let rumors spin out of control across WhatsApp and Reddit!",
-        "In a PR crisis, silence is treated as admission. IEC SOA's PR team drafts immediate containment statements."
-      );
-      return;
-    }
-    const timer = setInterval(() => {
-      setCrisisTimeLeft((prev) => prev - 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [phase, crisisTimeLeft, chosenStartup, applyDecision]);
 
   if (!chosenStartup) return null;
 
@@ -213,13 +183,13 @@ export const StageHost: React.FC = () => {
                 STARTUP SUCCESS RATE:
               </span>
               <span className="brawl-text text-base text-yellow-400">
-                {Math.max(0, Math.min(100, stats.score))}%
+                {Math.max(25, Math.min(75, stats.score))}%
               </span>
             </div>
             <div className="relative w-full h-6 bg-[#090d19] rounded-full border-2 border-black overflow-hidden p-0.5 shadow-inner">
               <div className="w-full h-full bg-[#050711] rounded-full overflow-hidden relative">
                 <div
-                  style={{ width: `${Math.max(0, Math.min(100, stats.score))}%` }}
+                  style={{ width: `${Math.max(25, Math.min(75, stats.score))}%` }}
                   className="h-full bg-gradient-to-r from-yellow-400 via-amber-300 to-sky-400 rounded-full relative"
                 />
               </div>

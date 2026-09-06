@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import type { 
-  GamePhase, 
-  GameStats, 
-  VerticalScores, 
-  StartupOption, 
-  FloatingDelta, 
-  DecisionHistoryItem 
+import type {
+  GamePhase,
+  GameStats,
+  VerticalScores,
+  StartupOption,
+  FloatingDelta,
+  DecisionHistoryItem
 } from '../types/game';
 import { ecellConfig } from '../config/ecellConfig';
 import { sound } from '../utils/soundEffects';
@@ -16,6 +16,8 @@ interface LastOutcome {
   choiceTitle: string;
   deltasSummary: Record<string, number>;
   isCorrect?: boolean;
+  scoreDelta?: number;
+  ratingBadge?: string;
 }
 
 interface GameContextType {
@@ -31,7 +33,7 @@ interface GameContextType {
   floatingDeltas: FloatingDelta[];
   lastOutcome: LastOutcome | null;
   founderOwnership: number;
-  
+
   // Actions
   startIntroduction: () => void;
   selectStartup: (startup: StartupOption) => void;
@@ -41,7 +43,8 @@ interface GameContextType {
     choiceTitle: string,
     narrative: string,
     takeaway: string,
-    isCorrect?: boolean
+    isCorrect?: boolean,
+    ratingBadge?: string
   ) => void;
   advanceToNextStage: () => void;
   openAskECellHelp: () => void;
@@ -114,12 +117,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const proceedFromMapToStage = useCallback(() => {
     sound.playTransition();
     const currentStage = ecellConfig.stages[currentStageIndex];
-    if (currentStage.id === 'stage-pr') {
-      sound.playCrisisAlarm();
-      setPhase('crisis_active');
-    } else if (currentStage.id === 'stage-pitch') {
+    if (currentStage.id === 'stage-pitch') {
       setPhase('pitch_arena');
     } else {
+      if (currentStage.id === 'stage-pr') {
+        sound.playCrisisAlarm();
+      }
       setPhase('stage_active');
     }
   }, [currentStageIndex]);
@@ -129,23 +132,27 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     choiceTitle: string,
     narrative: string,
     takeaway: string,
-    isCorrect?: boolean
+    isCorrect?: boolean,
+    ratingBadge?: string
   ) => {
     const currentStage = ecellConfig.stages[currentStageIndex];
     const scoreDiff = deltas.score ?? 0;
     const isWin = isCorrect !== undefined ? isCorrect : scoreDiff > 0;
 
-    if (isWin) {
+    if (scoreDiff >= 8 || isWin) {
+      sound.playCorrectAnswer();
+      triggerDelta(`▲ +${scoreDiff}% SUCCESS BOOST`, 'positive', 'score');
+    } else if (scoreDiff > 0) {
       sound.playPositive();
-      triggerDelta(`▲ +${Math.abs(scoreDiff) || 20}% SUCCESS RATE`, 'positive', 'score');
+      triggerDelta(`▲ +${scoreDiff}% MINOR GAIN`, 'positive', 'score');
     } else {
-      sound.playNegative();
-      triggerDelta(`▼ -${Math.abs(scoreDiff) || 15}% SUCCESS RATE`, 'negative', 'score');
+      sound.playWrongAnswer();
+      triggerDelta(`▼ ${scoreDiff}% RUNWAY HIT`, 'negative', 'score');
     }
 
-    // Update Core Stats
+    // Update Core Stats (Score strictly bounded between 25% and 75%)
     setStats((prev) => {
-      const nextScore = Math.max(0, Math.min(100, prev.score + (deltas.score ?? 0)));
+      const nextScore = Math.max(25, Math.min(75, prev.score + (deltas.score ?? 0)));
       const nextEnergy = Math.max(0, Math.min(100, prev.energy + (deltas.energy ?? 0)));
       const nextRep = Math.max(0, Math.min(100, prev.reputation + (deltas.reputation ?? 0)));
       const nextMoney = Math.max(0, prev.money + (deltas.money ?? 0));
@@ -189,7 +196,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ecellTakeaway: takeaway,
       choiceTitle,
       deltasSummary: summary,
-      isCorrect: isWin
+      isCorrect: isWin,
+      scoreDelta: scoreDiff,
+      ratingBadge,
     });
 
     // Log decision
@@ -216,7 +225,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPhase('map_journey');
     } else {
       sound.playSuccessFanfare();
-      setPhase('results');
+      setPhase('pitch_arena');
     }
   }, [currentStageIndex]);
 
@@ -235,13 +244,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const finishPitchMontage = useCallback(() => {
-    if (stats.score >= 50) {
-      sound.playSuccessFanfare();
-    } else {
-      sound.playFailureDrone();
-    }
-    setPhase('results');
-  }, [stats.score]);
+    sound.playSuccessFanfare();
+    setPhase('ecell_reveal');
+  }, []);
 
   const openECellReveal = useCallback(() => {
     sound.playSuccessFanfare();
@@ -274,7 +279,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       triggerDelta(`+₹${amount.toLocaleString()}💰 VENTURE CAPITAL`, 'positive', 'money');
     } else if (type === 'score') {
       sound.playPowerupPickup();
-      setStats((prev) => ({ ...prev, score: Math.min(100, prev.score + amount) }));
+      setStats((prev) => ({ ...prev, score: Math.max(25, Math.min(75, prev.score + amount)) }));
       triggerDelta(`+${amount}★ XP MATRIX`, 'positive', 'score');
     }
   }, [triggerDelta]);

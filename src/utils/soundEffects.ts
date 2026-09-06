@@ -51,61 +51,153 @@ class SoundEngine {
     }
   }
 
-  // Positive decision chime (+15, success)
-  public playPositive() {
+  // Sci-fi pneumatic sliding door whoosh & latch sound
+  public playDoorOpen() {
     if (this.isMuted) return;
     this.initCtx();
     if (!this.ctx) return;
 
     try {
       const now = this.ctx.currentTime;
-      const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+
+      // 1. Pneumatic Air Release Whoosh
+      const osc1 = this.ctx.createOscillator();
+      const gain1 = this.ctx.createGain();
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(160, now);
+      osc1.frequency.exponentialRampToValueAtTime(480, now + 0.12);
+      osc1.frequency.exponentialRampToValueAtTime(220, now + 0.28);
+
+      gain1.gain.setValueAtTime(0.22, now);
+      gain1.gain.exponentialRampToValueAtTime(0.005, now + 0.3);
+
+      osc1.connect(gain1);
+      gain1.connect(this.ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.32);
+
+      // 2. High-tech hydraulic sliding resonance
+      const osc2 = this.ctx.createOscillator();
+      const gain2 = this.ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(420, now + 0.04);
+      osc2.frequency.linearRampToValueAtTime(780, now + 0.18);
+      osc2.frequency.linearRampToValueAtTime(540, now + 0.26);
+
+      gain2.gain.setValueAtTime(0.14, now + 0.04);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+      osc2.connect(gain2);
+      gain2.connect(this.ctx.destination);
+      osc2.start(now + 0.04);
+      osc2.stop(now + 0.3);
+
+      // 3. Electronic Door Beep chime
+      const osc3 = this.ctx.createOscillator();
+      const gain3 = this.ctx.createGain();
+      osc3.type = 'sine';
+      osc3.frequency.setValueAtTime(1046.5, now + 0.18); // C6
+
+      gain3.gain.setValueAtTime(0.12, now + 0.18);
+      gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+
+      osc3.connect(gain3);
+      gain3.connect(this.ctx.destination);
+      osc3.start(now + 0.18);
+      osc3.stop(now + 0.36);
+    } catch {
+      // AudioContext error silently handled
+    }
+  }
+
+  // Correct decision chime - Celebratory arpeggio with bright harmonic sparkle
+  public playCorrectAnswer() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      // C5, E5, G5, B5, C6, E6 rising victory arpeggio
+      const notes = [523.25, 659.25, 783.99, 987.77, 1046.5, 1318.51];
       notes.forEach((freq, idx) => {
         if (!this.ctx) return;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+        osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+        const startT = now + idx * 0.055;
+        osc.frequency.setValueAtTime(freq, startT);
 
-        gain.gain.setValueAtTime(0.2, now + idx * 0.06);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.25);
+        const dur = idx === notes.length - 1 ? 0.45 : 0.22;
+        gain.gain.setValueAtTime(0.22, startT);
+        gain.gain.exponentialRampToValueAtTime(0.001, startT + dur);
 
         osc.connect(gain);
         gain.connect(this.ctx.destination);
 
-        osc.start(now + idx * 0.06);
-        osc.stop(now + idx * 0.06 + 0.28);
+        osc.start(startT);
+        osc.stop(startT + dur + 0.05);
       });
     } catch {
       // AudioContext error silently handled
     }
   }
 
-  // Negative consequence buzz (-15, warning)
-  public playNegative() {
+  // Wrong decision buzz - Dissonant arcade buzz with pitch drop and error thud
+  public playWrongAnswer() {
     if (this.isMuted) return;
     this.initCtx();
     if (!this.ctx) return;
 
     try {
       const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(180, now);
-      osc.frequency.exponentialRampToValueAtTime(80, now + 0.3);
 
-      gain.gain.setValueAtTime(0.25, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      // Two slightly detuned oscillators for authentic arcade error buzzer dissonance
+      [175, 185].forEach((baseFreq) => {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(baseFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(75, now + 0.32);
 
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
+        gain.gain.setValueAtTime(0.24, now);
+        gain.gain.exponentialRampToValueAtTime(0.008, now + 0.32);
 
-      osc.start(now);
-      osc.stop(now + 0.32);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.35);
+      });
+
+      // Low impact sub-thud
+      const subOsc = this.ctx.createOscillator();
+      const subGain = this.ctx.createGain();
+      subOsc.type = 'triangle';
+      subOsc.frequency.setValueAtTime(110, now);
+      subOsc.frequency.exponentialRampToValueAtTime(45, now + 0.25);
+
+      subGain.gain.setValueAtTime(0.28, now);
+      subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+
+      subOsc.connect(subGain);
+      subGain.connect(this.ctx.destination);
+      subOsc.start(now);
+      subOsc.stop(now + 0.28);
     } catch {
       // AudioContext error silently handled
     }
+  }
+
+  // Positive decision chime (+15, success) - aliases to playCorrectAnswer
+  public playPositive() {
+    this.playCorrectAnswer();
+  }
+
+  // Negative consequence buzz (-15, warning) - aliases to playWrongAnswer
+  public playNegative() {
+    this.playWrongAnswer();
   }
 
   // Money transaction chime
@@ -427,31 +519,9 @@ class SoundEngine {
     }
   }
 
-  // Subtle soft footstep sneaker tap on orbital deck
+  // Footstep sound disabled (silent walking)
   public playFootstep() {
-    if (this.isMuted) return;
-    this.initCtx();
-    if (!this.ctx) return;
-
-    try {
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      const freq = 120 + Math.random() * 25; // Organic variation
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, now);
-      osc.frequency.exponentialRampToValueAtTime(50, now + 0.04);
-
-      gain.gain.setValueAtTime(0.045, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.05);
-    } catch {
-      // AudioContext error silently handled
-    }
+    // Disabled to avoid disturbing repetitive walking audio
   }
 
   // Friendly cyber comms chirp when consulting with a mentor
