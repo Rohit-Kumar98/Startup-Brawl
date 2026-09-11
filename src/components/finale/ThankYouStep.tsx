@@ -1,15 +1,10 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { ArrowLeft, Sparkles, Heart, Globe } from 'lucide-react';
+import { Sparkles, Heart, Globe } from 'lucide-react';
 import { sound } from '../../utils/soundEffects';
 
-interface ThankYouStepProps {
-  onBackToTeam: () => void;
-  onBackToPoster: () => void;
-}
-
-export const ThankYouStep: React.FC<ThankYouStepProps> = ({ onBackToTeam, onBackToPoster }) => {
+export const ThankYouStep: React.FC = () => {
   useEffect(() => {
     sound.playSuccessFanfare();
     try {
@@ -57,51 +52,12 @@ export const ThankYouStep: React.FC<ThankYouStepProps> = ({ onBackToTeam, onBack
           Presented with <Heart className="inline w-4 h-4 text-pink-500 fill-pink-500 mx-1 align-baseline" /> by IEC SOA
         </p>
 
-        <p className="text-xs sm:text-sm text-gray-300 font-sans max-w-xl mx-auto mt-3 leading-relaxed">
+        <p className="text-xs sm:text-sm text-gray-300 font-sans max-w-xl mx-auto mt-3 mb-6 leading-relaxed">
           Whether your venture raised millions or crashed in the campus canteen, every great founder starts by taking that first bold leap. IEC SOA is here to ensure you never build alone.
         </p>
 
-        {/* 3 Pillar Highlight Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 my-8 max-w-2xl mx-auto">
-          <div className="p-3.5 rounded-2xl bg-[#1d1040]/70 border border-purple-500/30 flex flex-col items-center">
-            <div className="w-10 h-10 rounded-xl bg-purple-900/80 flex items-center justify-center text-xl mb-1.5 shadow">
-              💡
-            </div>
-            <h4 className="font-brawl text-xs sm:text-sm text-white uppercase tracking-wider">
-              IDEA INCUBATION
-            </h4>
-            <p className="text-[10px] text-purple-200/80 font-sans mt-0.5">
-              From whiteboard concept to validated MVP.
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-[#1d1040]/70 border border-purple-500/30 flex flex-col items-center">
-            <div className="w-10 h-10 rounded-xl bg-purple-900/80 flex items-center justify-center text-xl mb-1.5 shadow">
-              🤝
-            </div>
-            <h4 className="font-brawl text-xs sm:text-sm text-white uppercase tracking-wider">
-              1-ON-1 MENTORSHIP
-            </h4>
-            <p className="text-[10px] text-purple-200/80 font-sans mt-0.5">
-              Industry leaders, alumni & ecosystem guidance.
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-[#1d1040]/70 border border-purple-500/30 flex flex-col items-center">
-            <div className="w-10 h-10 rounded-xl bg-purple-900/80 flex items-center justify-center text-xl mb-1.5 shadow">
-              🚀
-            </div>
-            <h4 className="font-brawl text-xs sm:text-sm text-white uppercase tracking-wider">
-              GRANTS & FUNDING
-            </h4>
-            <p className="text-[10px] text-purple-200/80 font-sans mt-0.5">
-              Access to institutional seed capital.
-            </p>
-          </div>
-        </div>
-
         {/* Official Channels & Contact Badges */}
-        <div className="p-4 rounded-2xl bg-[#0d0720]/80 border border-purple-900/80 max-w-xl mx-auto mb-8">
+        <div className="p-4 rounded-2xl bg-[#0d0720]/80 border border-purple-900/80 max-w-xl mx-auto">
           <p className="text-[11px] font-mono uppercase tracking-widest text-purple-300 font-bold mb-3">
             CONNECT WITH IEC SOA
           </p>
@@ -140,30 +96,6 @@ export const ThankYouStep: React.FC<ThankYouStepProps> = ({ onBackToTeam, onBack
               <span>IEC SOA</span>
             </a>
           </div>
-        </div>
-
-        {/* Navigation: Review Team / Poster (NO replay button!) */}
-        <div className="flex flex-wrap items-center justify-center gap-3.5 pt-2">
-          <button
-            onClick={() => {
-              sound.playClick();
-              onBackToTeam();
-            }}
-            className="py-3 px-6 rounded-2xl bg-[#1d1040] hover:bg-[#2c1861] text-purple-200 hover:text-white text-xs sm:text-sm font-brawl tracking-wider flex items-center gap-2 border border-purple-500/40 transition-colors active:translate-y-0.5 shadow-[0_0_15px_rgba(168,85,247,0.2)]"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>MEET OUR TEAM</span>
-          </button>
-
-          <button
-            onClick={() => {
-              sound.playClick();
-              onBackToPoster();
-            }}
-            className="py-3 px-6 rounded-2xl bg-[#140b2e] hover:bg-[#201149] text-gray-300 hover:text-white text-xs sm:text-sm font-brawl tracking-wider flex items-center gap-2 border border-purple-800 transition-colors active:translate-y-0.5"
-          >
-            <span>REGISTRATION POSTER</span>
-          </button>
         </div>
 
       </div>
