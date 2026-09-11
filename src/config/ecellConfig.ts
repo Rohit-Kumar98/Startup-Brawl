@@ -9,7 +9,7 @@ export const ecellConfig = {
   motto: "Empowering students to transform ideas into impactful ventures.",
   ctaHeading: "Ready to Spark Your Venture?",
   ctaSubheading: "IEC SOA Welcomes You. Don't build alone.",
-  qrCodeLink: "https://iecsoa.com",
+  qrCodeLink: "https://ecellsoa.in/register",
   qrPlaceholderText: "Scan to Join IEC SOA or Pitch Your Idea",
 
   // Starting stats
